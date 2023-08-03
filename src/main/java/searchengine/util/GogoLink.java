@@ -24,8 +24,8 @@ public class GogoLink extends RecursiveAction {
 
     private String url;
 
-    private final SiteModel siteId;
-    private final PageModel pageModel;
+    private SiteModel siteId;
+    private PageModel pageModel;
 
 
     private SiteRepository siteRepository;
@@ -37,7 +37,6 @@ public class GogoLink extends RecursiveAction {
     public GogoLink(String url, SiteModel siteId, SiteRepository siteRepository, PageRepository pageRepository) {
         this.url = url;
         this.siteId = siteId;
-        this.pageModel = new PageModel();
         this.siteRepository = siteRepository;
         this.pageRepository = pageRepository;
     }
@@ -87,6 +86,7 @@ public class GogoLink extends RecursiveAction {
 
                     URL hrefUrl = new URL(href);
                     String path = hrefUrl.getPath();
+
                     boolean isPageExist = pageRepository.findByPath(path).isPresent();
 
 
@@ -95,17 +95,17 @@ public class GogoLink extends RecursiveAction {
                         Document docItem = Jsoup.connect(href).get();
                         String html = docItem.html();
 
-
+                        pageModel = new PageModel();
                         pageModel.setPath(path);
                         pageModel.setContent(html);
                         pageModel.setCode(statusCode);
                         pageModel.setSiteId(siteId);
-
+                        pageRepository.save(pageModel);
 
                         siteId.setStatusTime(LocalDateTime.now());
                         siteRepository.save(siteId);
 
-                        pageRepository.save(pageModel);
+
 
                         if (!IndexServiceImpl.isRunning) {
                             return;

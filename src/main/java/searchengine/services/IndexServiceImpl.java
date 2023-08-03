@@ -84,7 +84,6 @@ public class IndexServiceImpl implements IndexingService {
         return new IndexingResponse(true);
     }
 
-    //TODO: Решить проблему с сохранением нового статуса siteModel после вызова метода stopIndexing(). В бд изменений нет!
     @Override
     public IndexingResponse stopIndexing() {
         if (!isRunning) {
@@ -94,18 +93,22 @@ public class IndexServiceImpl implements IndexingService {
             isStopped = true;
         }
         pool.shutdown();
-        System.out.println("__________________Вызов метода стопИндекс!!!!!!!!");
+
         List<SiteModel> siteList = siteRepository.findAll();
 
         for (SiteModel site : siteList) {
             if (site.getStatus().equals("INDEXING")){
-                System.out.println("------------------____________________------------------");
-                site.setStatusTime(LocalDateTime.now());
-                site.setStatus("FAILED");
-                site.setLastError("Индексация остановлена пользователем");
-                System.out.println(site.getName() + "  " + site.getStatus());
-                siteRepository.save(site);
-                System.out.println("____сайт сохранен!");
+
+                siteRepository.delete(site);
+
+                SiteModel siteModel = new SiteModel();
+                siteModel.setName(site.getName());
+                siteModel.setUrl(site.getUrl());
+                siteModel.setStatusTime(LocalDateTime.now());
+                siteModel.setStatus("FAILED");
+                siteModel.setLastError("Индексация остановлена пользователем");
+
+                siteRepository.save(siteModel);
             }
         }
         return new IndexingResponse(true);
