@@ -2,12 +2,15 @@
 
 indexing-settings:
   sites:
-    - url: https://www.lenta.ru
+    - url: https://lenta.ru
       name: Лента.ру
-    - url: https://www.skillbox.ru
+    - url: https://skillbox.ru
       name: Skillbox
     - url: https://www.playback.ru
       name: PlayBack.Ru
+    - url: https://dombulgakova.ru
+      name: Дом Булагакова
+
 
 
 
@@ -25,7 +28,9 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
     hibernate:
       ddl-auto: update
+      generate-ddl: true
     show-sql: true
+
 
 
 

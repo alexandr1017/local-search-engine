@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 import java.util.Set;
 
 @Data
-@NoArgsConstructor
 @Entity
 @Table(name = "site")
 public class SiteModel {
@@ -27,12 +26,18 @@ public class SiteModel {
     private String lastError;
     @Column(columnDefinition = "VARCHAR(255)",nullable = false)
     private String url;
-    @Column(columnDefinition = "VARCHAR(255)",nullable = false)
+    @Column(columnDefinition = "VARCHAR(255)",nullable = false, unique = true)
     private String name;
 
     @OneToMany(mappedBy = "siteId",fetch = FetchType.LAZY)
     private Set<PageModel> pageSet;
     @OneToMany(mappedBy = "siteId",fetch = FetchType.LAZY)
     private Set<LemmaModel> lemmaSet;
+
+    public SiteModel (){
+        setStatus("INDEXING");
+        setStatusTime(LocalDateTime.now());
+    }
+
 
 }

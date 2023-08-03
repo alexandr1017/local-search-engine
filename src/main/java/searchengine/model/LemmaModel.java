@@ -2,6 +2,8 @@ package searchengine.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 
 import javax.persistence.*;
@@ -16,7 +18,8 @@ public class LemmaModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne(cascade = CascadeType.MERGE, fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action= OnDeleteAction.CASCADE)
     @JoinColumn(name = "site_id",nullable = false)
     private SiteModel siteId;
     @Column(columnDefinition = "VARCHAR(255)",nullable = false)
