@@ -2,14 +2,26 @@
 
 indexing-settings:
   sites:
-    - url: https://lenta.ru
-      name: Лента.ру
-    - url: https://skillbox.ru
-      name: Skillbox
-    - url: https://www.playback.ru
+#    - url: https://lenta.ru
+#      name: Лента.ру
+#    - url: https://skillbox.ru
+#      name: Skillbox
+    - url: https://volochek.life
       name: PlayBack.Ru
-    - url: https://dombulgakova.ru
+    - url: http://radiomv.ru
       name: Дом Булагакова
+    - url: https://ipfran.ru
+      name: ИПФ РАН
+    - url: https://dimonvideo.ru
+      name: DimonVideo - программы | игры | фильмы | книги » Страница 1
+    - url: https://nikoartgallery.com
+      name: Галерея искусств Niko
+    - url: https://et-cetera.ru
+      name: Театр «Et Cetera»
+    - url: https://www.lutherancathedral.ru
+      name: Собор Петра и Павла - Собор Петра и Павла
+    - url: https://www.svetlovka.ru
+      name: Центральная городская молодежная библиотека им. М. А. Светлова
 
 
 

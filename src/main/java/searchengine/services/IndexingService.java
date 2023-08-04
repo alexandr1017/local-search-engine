@@ -10,5 +10,5 @@ import java.util.Map;
 public interface IndexingService {
 
     public IndexingResponse startIndexing () throws MalformedURLException;
-    public IndexingResponse stopIndexing ();
+    public IndexingResponse stopIndexing () throws InterruptedException;
 }

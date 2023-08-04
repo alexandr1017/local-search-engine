@@ -9,7 +9,7 @@ import searchengine.dto.indexing.IndexingResponseFail;
 import searchengine.model.SiteModel;
 import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
-import searchengine.util.GogoLink;
+import searchengine.util.RecursiveSiteCrawler;
 
 import java.time.LocalDateTime;
 
@@ -50,7 +50,6 @@ public class IndexServiceImpl implements IndexingService {
 
         List<Site> sites = sitesList.getSites();
 
-
         for (Site site : sites) {
             siteRepository.deleteByUrl(site.getUrl());
 
@@ -58,12 +57,17 @@ public class IndexServiceImpl implements IndexingService {
             siteModel.setName(site.getName());
             siteModel.setUrl(site.getUrl());
 
-            SiteModel savedSiteModel = siteRepository.save(siteModel);
+            siteRepository.save(siteModel);
+        }
+
+        List<SiteModel> allSiteModels = siteRepository.findAll();
 
 
-            GogoLink gogoLinkTask = new GogoLink(siteModel.getUrl(), savedSiteModel, siteRepository, pageRepository);
+        for (SiteModel siteModel : allSiteModels) {
+
+            RecursiveSiteCrawler recursiveSiteCrawlerTask = new RecursiveSiteCrawler(siteModel.getUrl(), siteModel, siteRepository, pageRepository);
             pool = new ForkJoinPool();
-            pool.execute(gogoLinkTask);
+            pool.execute(recursiveSiteCrawlerTask);
 
             pool.shutdown();
             awaitPoolTermination();
@@ -79,13 +83,12 @@ public class IndexServiceImpl implements IndexingService {
 
         }
 
-
         isRunning = false;
         return new IndexingResponse(true);
     }
 
     @Override
-    public IndexingResponse stopIndexing() {
+    public IndexingResponse stopIndexing() throws InterruptedException {
         if (!isRunning) {
             return new IndexingResponseFail("Индексация не запущена");
         } else {
@@ -94,21 +97,17 @@ public class IndexServiceImpl implements IndexingService {
         }
         pool.shutdown();
 
-        List<SiteModel> siteList = siteRepository.findAll();
+        Thread.sleep(3000);
 
+        List<SiteModel> siteList = siteRepository.findAll();
         for (SiteModel site : siteList) {
             if (site.getStatus().equals("INDEXING")){
 
-                siteRepository.delete(site);
+                site.setStatusTime(LocalDateTime.now());
+                site.setStatus("FAILED");
+                site.setLastError("Индексация остановлена пользователем");
 
-                SiteModel siteModel = new SiteModel();
-                siteModel.setName(site.getName());
-                siteModel.setUrl(site.getUrl());
-                siteModel.setStatusTime(LocalDateTime.now());
-                siteModel.setStatus("FAILED");
-                siteModel.setLastError("Индексация остановлена пользователем");
-
-                siteRepository.save(siteModel);
+                siteRepository.save(site);
             }
         }
         return new IndexingResponse(true);
@@ -125,3 +124,14 @@ public class IndexServiceImpl implements IndexingService {
     }
 
 }
+//TODO: Применить синглтон??
+//    private IndexServiceImpl() {
+//        // Конструктор
+//    }
+//
+//    public static IndexServiceImpl getInstance() {
+//        if (instance == null) {
+//            instance = new IndexServiceImpl();
+//        }
+//        return instance;
+//    }

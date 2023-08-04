@@ -6,6 +6,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import searchengine.model.PageModel;
 import searchengine.model.SiteModel;
@@ -18,23 +19,19 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.RecursiveAction;
 
-public class GogoLink extends RecursiveAction {
+public class RecursiveSiteCrawler extends RecursiveAction {
     public static final String REGEX_URL = "^(https?|ftp|file)://[-a-zA-Z0-9+&@/%=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]";
-
+    private static final String USER_AGENT = "GoodSearchBot";
+    private static final String REFERRER = "http://www.google.com";
 
     private String url;
-
     private SiteModel siteId;
     private PageModel pageModel;
-
-
     private SiteRepository siteRepository;
-
-
     private PageRepository pageRepository;
 
 
-    public GogoLink(String url, SiteModel siteId, SiteRepository siteRepository, PageRepository pageRepository) {
+    public RecursiveSiteCrawler(String url, SiteModel siteId, SiteRepository siteRepository, PageRepository pageRepository) {
         this.url = url;
         this.siteId = siteId;
         this.siteRepository = siteRepository;
@@ -47,33 +44,23 @@ public class GogoLink extends RecursiveAction {
         if (!IndexServiceImpl.isRunning) {
             return;
         }
-
         try {
-
             Thread.sleep(150);
 
             System.setProperty("https.protocols", "TLSv1,TLSv1.1,TLSv1.2");
-            Connection.Response res = Jsoup.connect(url).userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)" +
-                    "AppleWebKit/537.36 (KHTML, like Gecko)" +
-                    "Chrome/58.0.3029.110 Safari/537.3").ignoreContentType(true).execute();
-
+            Connection.Response res = Jsoup.connect(url)
+                    .userAgent(USER_AGENT)
+                    .referrer(REFERRER)
+                    .ignoreContentType(true).execute();
 
             int statusCode = res.statusCode();
             Document doc = res.parse();
             Elements links = doc.select("a");
 
-
-            List<GogoLink> subTasks = new ArrayList<>();
+            List<RecursiveSiteCrawler> subTasks = new ArrayList<>();
 
             for (Element item : links) {
-
-//                if (Thread.currentThread().isInterrupted()) {
-//                    return;
-//                }
-
                 String href = item.attr("abs:href");
-
-
                 if (href.startsWith(url)
                         && href.matches(REGEX_URL)
                         && !href.equals(url)
@@ -83,12 +70,10 @@ public class GogoLink extends RecursiveAction {
                         && !href.endsWith("jpeg")
                         && !href.endsWith("png")) {
 
-
                     URL hrefUrl = new URL(href);
                     String path = hrefUrl.getPath();
 
                     boolean isPageExist = pageRepository.findByPath(path).isPresent();
-
 
                     if (!isPageExist) {
 
@@ -106,13 +91,11 @@ public class GogoLink extends RecursiveAction {
                         siteRepository.save(siteId);
 
 
-
                         if (!IndexServiceImpl.isRunning) {
                             return;
                         }
 
-
-                        GogoLink subTask = new GogoLink(href, siteId, siteRepository, pageRepository);
+                        RecursiveSiteCrawler subTask = new RecursiveSiteCrawler(href, siteId, siteRepository, pageRepository);
                         subTask.fork();
                         subTasks.add(subTask);
                     }
@@ -130,6 +113,6 @@ public class GogoLink extends RecursiveAction {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 }
+

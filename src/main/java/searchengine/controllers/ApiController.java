@@ -33,7 +33,7 @@ public class ApiController {
         return ResponseEntity.ok(indexingResponse);
     }
     @GetMapping("/stopIndexing")
-    public ResponseEntity<IndexingResponse> stopIndexing () {
+    public ResponseEntity<IndexingResponse> stopIndexing () throws InterruptedException {
         IndexingResponse indexingResponse = indexingService.stopIndexing();
         return ResponseEntity.ok(indexingResponse);
     }
