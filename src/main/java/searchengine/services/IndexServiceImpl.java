@@ -96,12 +96,11 @@ public class IndexServiceImpl implements IndexingService {
             isStopped = true;
         }
         pool.shutdown();
-
-        Thread.sleep(3000);
+        awaitPoolTermination();
 
         List<SiteModel> siteList = siteRepository.findAll();
         for (SiteModel site : siteList) {
-            if (site.getStatus().equals("INDEXING")){
+            if (site.getStatus().equals("INDEXING")) {
 
                 site.setStatusTime(LocalDateTime.now());
                 site.setStatus("FAILED");
