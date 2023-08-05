@@ -6,6 +6,7 @@ import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.indexing.IndexingResponse;
 import searchengine.dto.indexing.IndexingResponseFail;
+import searchengine.exceptions.IndexingAlreadyStartedException;
 import searchengine.model.SiteModel;
 import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
@@ -37,7 +38,7 @@ public class IndexServiceImpl implements IndexingService {
     @Override
     public IndexingResponse startIndexing() {
         if (isRunning) {
-            return new IndexingResponseFail("Индексация уже запущена");
+            throw new IndexingAlreadyStartedException("Индексация уже запущена");
         } else {
             isRunning = true;
             new Thread(this::sitesParsing).start();
@@ -74,7 +75,7 @@ public class IndexServiceImpl implements IndexingService {
 
             if (isStopped) {
                 isStopped = false;
-                return new IndexingResponseFail("Индексация остановлена пользователем");
+                throw new IndexingAlreadyStartedException("Индексация остановлена пользователем");
             }
 
             siteModel.setStatusTime(LocalDateTime.now());
@@ -90,7 +91,7 @@ public class IndexServiceImpl implements IndexingService {
     @Override
     public IndexingResponse stopIndexing() throws InterruptedException {
         if (!isRunning) {
-            return new IndexingResponseFail("Индексация не запущена");
+            throw new IndexingAlreadyStartedException("Индексация не запущена");
         } else {
             isRunning = false;
             isStopped = true;
