@@ -110,14 +110,14 @@ public class IndexServiceImpl implements IndexingService {
         awaitPoolTermination();
 
         List<SiteModel> siteList = siteRepository.findAll();
-        for (SiteModel site : siteList) {
-            if (site.getStatus().equals("INDEXING")) {
+        for (SiteModel siteModel : siteList) {
+            if (siteModel.getStatus().equals("INDEXING")) {
 
-                site.setStatusTime(LocalDateTime.now());
-                site.setStatus("FAILED");
-                site.setLastError("Индексация остановлена пользователем");
+                siteModel.setStatusTime(LocalDateTime.now());
+                siteModel.setStatus("FAILED");
+                siteModel.setLastError("Индексация остановлена пользователем");
 
-                siteRepository.save(site);
+                siteRepository.save(siteModel);
             }
         }
         return new IndexingResponse(true);
@@ -125,18 +125,18 @@ public class IndexServiceImpl implements IndexingService {
 
     @Override
     public IndexingResponse addPageToIndex(String uri) throws IOException {
-
         URL url = new URL(uri);
         String path = url.getPath();
         String siteUrl = uri.replaceAll("^(https?://[^/]+)(/.*)?$", "$1");
 
-        if (!searchSiteInConfig(siteUrl)) {
+        if (searchSiteInConfig(siteUrl) == null) {
             throw new IncorrectURIException("Данная страница находится за пределами сайтов, указанных в конфигурационном файле");
         }
 
         if (!uri.matches(RecursiveSiteCrawler.REGEX_URL)) {
             throw new IncorrectURIException("Ошибочный адрес страницы");
         }
+
         Optional<PageModel> pageModelOptional = pageRepository.findByPath(path);
         Optional<SiteModel> siteModelOptional = siteRepository.findByUrl(siteUrl);
 
@@ -146,69 +146,77 @@ public class IndexServiceImpl implements IndexingService {
         try {
             Document docItem = Jsoup.connect(uri).get();
             String html = docItem.html();
+
             if (!isPageExist) {
                 if (!isSiteExist) {
-                    SiteModel siteModel = new SiteModel();
-                    siteModel.setName(siteUrl.replaceAll("https?://(www\\.)?", "").replaceAll("\\..*", "").toUpperCase());
-                    siteModel.setUrl(siteUrl);
-                    SiteModel savedSiteModel = siteRepository.save(siteModel);
-
-                    PageModel pageModel = new PageModel();
-                    pageModel.setPath(path);
-                    pageModel.setContent(html);
-                    pageModel.setCode(200);
-                    pageModel.setSiteId(savedSiteModel);
-                    pageRepository.save(pageModel);
-
-                    siteModel.setStatus("INDEXED");
-                    siteModel.setStatusTime(LocalDateTime.now());
+                    SiteModel siteModel = createNewSite(siteUrl);
+                    createNewPage(path, html, siteModel);
                 } else {
                     SiteModel siteModel = siteModelOptional.get();
-
-                    PageModel pageModel = new PageModel();
-                    pageModel.setContent(html);
-                    pageModel.setCode(200);
-                    pageModel.setSiteId(siteModel);
-                    pageModel.setPath(path);
-                    pageRepository.save(pageModel);
-
-                    siteModel.setStatus("INDEXED");
-                    siteModel.setStatusTime(LocalDateTime.now());
-                    siteRepository.save(siteModel);
+                    createNewPage(path, html, siteModel);
+                    updateSiteStatus(siteModel, "INDEXED");
                 }
-
             } else {
-
                 SiteModel siteModel = siteModelOptional.get();
-
                 PageModel pageModel = pageModelOptional.get();
-                pageModel.setContent(html);
-                pageModel.setCode(200);
-                pageRepository.save(pageModel);
-
-                siteModel.setStatus("INDEXED");
-                siteModel.setStatusTime(LocalDateTime.now());
-                siteRepository.save(siteModel);
+                updatePageContent(pageModel, html);
+                updateSiteStatus(siteModel, "INDEXED");
             }
 
             return new IndexingResponse(true);
 
         } catch (HttpStatusException ex) {
-            SiteModel siteModel = siteModelOptional.get();
-            PageModel pageModel = new PageModel();
-
-            pageModel.setCode(ex.getStatusCode());
-            pageModel.setPath(path);
-            pageModel.setContent("error");
-            pageModel.setSiteId(siteModel);
-            pageRepository.save(pageModel);
-
-            siteModel.setStatus("FAILED");
-            siteModel.setStatusTime(LocalDateTime.now());
-            siteModel.setLastError("Индексация страницы не выполнена. Страница не доступна. Код: " + ex.getStatusCode());
-            siteRepository.save(siteModel);
+            if (!isSiteExist) {
+                createNewSite(siteUrl);
+            }
+            handleHttpStatusException(ex, path, siteUrl);
             throw new IncorrectURIException("Страница не доступна. Код: " + ex.getStatusCode());
         }
+    }
+
+    private void handleHttpStatusException(HttpStatusException ex, String path, String siteUrl) {
+        SiteModel siteModel = siteRepository.findByUrl(siteUrl).get();
+        PageModel pageModel = new PageModel();
+
+        pageModel.setCode(ex.getStatusCode());
+        pageModel.setPath(path);
+        pageModel.setContent("error");
+        pageModel.setSiteId(siteModel);
+        pageRepository.save(pageModel);
+
+        siteModel.setStatus("FAILED");
+        siteModel.setStatusTime(LocalDateTime.now());
+        siteModel.setLastError("Индексация страницы не выполнена. Страница не доступна. Код: " + ex.getStatusCode());
+        siteRepository.save(siteModel);
+    }
+
+    private void updateSiteStatus(SiteModel siteModel, String status) {
+        siteModel.setLastError("");
+        siteModel.setStatus(status);
+        siteModel.setStatusTime(LocalDateTime.now());
+        siteRepository.save(siteModel);
+    }
+
+    private void createNewPage(String path, String html, SiteModel siteModel) {
+        PageModel pageModel = new PageModel();
+        pageModel.setContent(html);
+        pageModel.setCode(200);
+        pageModel.setSiteId(siteModel);
+        pageModel.setPath(path);
+        pageRepository.save(pageModel);
+    }
+
+    private SiteModel createNewSite(String siteUrl) {
+        SiteModel siteModel = new SiteModel();
+        Site site = searchSiteInConfig(siteUrl);
+        siteModel.setName(site.getName());
+        siteModel.setUrl(siteUrl);
+        return siteRepository.save(siteModel);
+    }
+
+    private void updatePageContent(PageModel pageModel, String content) {
+        pageModel.setContent(content);
+        pageRepository.save(pageModel);
     }
 
     private void awaitPoolTermination() {
@@ -221,13 +229,12 @@ public class IndexServiceImpl implements IndexingService {
         }
     }
 
-    private boolean searchSiteInConfig(String siteUrl) {
-
+    private Site searchSiteInConfig(String siteUrl) {
         for (Site site : sitesList.getSites()) {
             if (site.getUrl().equals(siteUrl)) {
-                return true;
+                return site;
             }
         }
-        return false;
+        return null;
     }
 }
