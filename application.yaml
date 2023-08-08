@@ -6,22 +6,22 @@ indexing-settings:
 #      name: Лента.ру
 #    - url: https://skillbox.ru
 #      name: Skillbox
-    - url: https://volochek.life
+    - url: http://www.playback.ru
       name: PlayBack.Ru
-    - url: http://radiomv.ru
+    - url: https://dombulgakova.ru
       name: Дом Булагакова
-    - url: https://ipfran.ru
-      name: ИПФ РАН
-    - url: https://dimonvideo.ru
-      name: DimonVideo - программы | игры | фильмы | книги » Страница 1
-    - url: https://nikoartgallery.com
-      name: Галерея искусств Niko
-    - url: https://et-cetera.ru
-      name: Театр «Et Cetera»
-    - url: https://www.lutherancathedral.ru
-      name: Собор Петра и Павла - Собор Петра и Павла
-    - url: https://www.svetlovka.ru
-      name: Центральная городская молодежная библиотека им. М. А. Светлова
+#    - url: https://ipfran.ru
+#      name: ИПФ РАН
+#    - url: https://dimonvideo.ru
+#      name: DimonVideo - программы | игры | фильмы | книги » Страница 1
+#    - url: https://nikoartgallery.com
+#      name: Галерея искусств Niko
+#    - url: https://et-cetera.ru
+#      name: Театр «Et Cetera»
+#    - url: https://www.lutherancathedral.ru
+#      name: Собор Петра и Павла - Собор Петра и Павла
+#    - url: https://www.svetlovka.ru
+#      name: Центральная городская молодежная библиотека им. М. А. Светлова
 
 
 

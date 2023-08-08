@@ -21,8 +21,8 @@ import java.util.concurrent.RecursiveAction;
 
 public class RecursiveSiteCrawler extends RecursiveAction {
     public static final String REGEX_URL = "^(https?|ftp|file)://[-a-zA-Z0-9+&@/%=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]";
-    private static final String USER_AGENT = "GoodSearchBot";
-    private static final String REFERRER = "http://www.google.com";
+    public static final String USER_AGENT = "GoodSearchBot";
+    public static final String REFERRER = "http://www.google.com";
 
     private String url;
     private SiteModel siteId;

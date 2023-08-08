@@ -14,4 +14,10 @@ public class DefaultAdvice {
         IndexingResponseFail response = new IndexingResponseFail(e.getMessage());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(IncorrectURIException.class)
+    public ResponseEntity<IndexingResponse> handleException(IncorrectURIException e) {
+        IndexingResponseFail response = new IndexingResponseFail(e.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
 }
