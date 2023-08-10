@@ -83,10 +83,7 @@ public class IndexServiceImpl implements IndexingService {
 
         for (SiteModel siteModel : allSiteModels) {
 
-//            HashSet<String> visitedLinks = new HashSet<>();
-//            Set<String> visitedLinks = ConcurrentHashMap.newKeySet();
-//            Set<String> visitedLinks = Collections.synchronizedSet(new HashSet<String>());
-            CopyOnWriteArrayList<String> visitedLinks = new CopyOnWriteArrayList<>();
+            Set<String> visitedLinks = ConcurrentHashMap.newKeySet();
             RecursiveSiteCrawler recursiveSiteCrawlerTask = new RecursiveSiteCrawler(siteModel.getUrl(), visitedLinks, siteModel, siteRepository, pageRepository, lemmaRepository, indexRepository);
 
             pool = new ForkJoinPool();

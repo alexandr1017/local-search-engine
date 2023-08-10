@@ -21,7 +21,6 @@ import searchengine.services.IndexServiceImpl;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.RecursiveAction;
 
 public class RecursiveSiteCrawler extends RecursiveAction {
@@ -33,14 +32,14 @@ public class RecursiveSiteCrawler extends RecursiveAction {
     private SiteModel siteId;
     private PageModel pageModel;
 
-    CopyOnWriteArrayList<String> visitedLinks;
+    Set<String> visitedLinks;
     private SiteRepository siteRepository;
     private PageRepository pageRepository;
     private LemmaRepository lemmaRepository;
     private IndexRepository indexRepository;
 
 
-    public RecursiveSiteCrawler(String url, CopyOnWriteArrayList<String> visitedLinks, SiteModel siteId, SiteRepository siteRepository, PageRepository pageRepository, LemmaRepository lemmaRepository, IndexRepository indexRepository) {
+    public RecursiveSiteCrawler(String url, Set<String> visitedLinks, SiteModel siteId, SiteRepository siteRepository, PageRepository pageRepository, LemmaRepository lemmaRepository, IndexRepository indexRepository) {
         this.url = url;
         this.siteId = siteId;
         this.siteRepository = siteRepository;
