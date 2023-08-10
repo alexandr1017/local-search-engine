@@ -87,7 +87,7 @@ public class IndexServiceImpl implements IndexingService {
 //            Set<String> visitedLinks = ConcurrentHashMap.newKeySet();
 //            Set<String> visitedLinks = Collections.synchronizedSet(new HashSet<String>());
             CopyOnWriteArrayList<String> visitedLinks = new CopyOnWriteArrayList<>();
-            RecursiveSiteCrawler recursiveSiteCrawlerTask = new RecursiveSiteCrawler(siteModel.getUrl(),visitedLinks, siteModel, siteRepository, pageRepository, lemmaRepository, indexRepository);
+            RecursiveSiteCrawler recursiveSiteCrawlerTask = new RecursiveSiteCrawler(siteModel.getUrl(), visitedLinks, siteModel, siteRepository, pageRepository, lemmaRepository, indexRepository);
 
             pool = new ForkJoinPool();
             pool.execute(recursiveSiteCrawlerTask);
@@ -100,9 +100,14 @@ public class IndexServiceImpl implements IndexingService {
                 throw new IndexingAlreadyStartedException("Индексация остановлена пользователем");
             }
 
-            siteModel.setStatusTime(LocalDateTime.now());
-            siteModel.setStatus("INDEXED");
-            siteRepository.save(siteModel);
+            SiteModel siteModelFromDb = siteRepository.findByUrl(siteModel.getUrl()).get();
+            String lastError = siteModelFromDb.getLastError();
+
+            if (lastError == null) {
+                updateSiteStatus(siteModel, "INDEXED", "");
+            } else if (lastError.startsWith("Ошибка")) {
+                updateSiteStatus(siteModel, "FAILED", "Ошибка. Нет доступа к сайту");
+            }
 
         }
 
@@ -124,19 +129,16 @@ public class IndexServiceImpl implements IndexingService {
         List<SiteModel> siteList = siteRepository.findAll();
         for (SiteModel siteModel : siteList) {
 
-            if(siteModel.getLastError().startsWith("Ошибка")) {
-                siteModel.setStatusTime(LocalDateTime.now());
-                siteModel.setStatus("FAILED");
-            }
 
             if (siteModel.getStatus().equals("INDEXING")) {
 
                 siteModel.setStatusTime(LocalDateTime.now());
                 siteModel.setStatus("FAILED");
                 siteModel.setLastError("Индексация остановлена пользователем");
+                siteRepository.save(siteModel);
             }
 
-            siteRepository.save(siteModel);
+
         }
         return new IndexingResponse(true);
     }
@@ -174,14 +176,14 @@ public class IndexServiceImpl implements IndexingService {
 
                     lemmaAndIndexBuilder(lemmasCountMap, siteModel, pageModel);
 
-                    updateSiteStatus(siteModel, "INDEXED");
+                    updateSiteStatus(siteModel, "INDEXED", "");
                 } else {
                     SiteModel siteModel = siteModelOptional.get();
                     PageModel pageModel = createNewPage(path, html, siteModel);
 
                     lemmaAndIndexBuilder(lemmasCountMap, siteModel, pageModel);
 
-                    updateSiteStatus(siteModel, "INDEXED");
+                    updateSiteStatus(siteModel, "INDEXED", "");
 
                 }
             } else {
@@ -192,7 +194,7 @@ public class IndexServiceImpl implements IndexingService {
 
                 lemmaAndIndexBuilder(lemmasCountMap, siteModel, pageModel);
 
-                updateSiteStatus(siteModel, "INDEXED");
+                updateSiteStatus(siteModel, "INDEXED", "");
             }
 
             return new IndexingResponse(true);
@@ -251,8 +253,8 @@ public class IndexServiceImpl implements IndexingService {
         siteRepository.save(siteModel);
     }
 
-    private void updateSiteStatus(SiteModel siteModel, String status) {
-        siteModel.setLastError("");
+    private void updateSiteStatus(SiteModel siteModel, String status, String lastError) {
+        siteModel.setLastError(lastError);
         siteModel.setStatus(status);
         siteModel.setStatusTime(LocalDateTime.now());
         siteRepository.save(siteModel);

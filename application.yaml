@@ -4,12 +4,12 @@ indexing-settings:
   sites:
 #    - url: https://lenta.ru
 #      name: Лента.ру
-    - url: https://skillbox.ru
-      name: Skillbox
+#    - url: https://skillbox.ru
+#      name: Skillbox
     - url: http://www.playback.ru
       name: PlayBack.Ru
-#    - url: https://dombulgakova.ru
-#      name: Дом Булгакова
+    - url: https://dombulgakova.ru
+      name: Дом Булгакова
 #    - url: https://ipfran.ru
 #      name: ИПФ РАН
 #    - url: https://dimonvideo.ru

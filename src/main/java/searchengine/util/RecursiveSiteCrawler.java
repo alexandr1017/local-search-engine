@@ -6,7 +6,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.springframework.dao.DataIntegrityViolationException;
+
 import searchengine.model.IndexModel;
 import searchengine.model.LemmaModel;
 import searchengine.model.PageModel;
@@ -17,7 +17,7 @@ import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
 import searchengine.services.IndexServiceImpl;
 
-import java.net.MalformedURLException;
+
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -26,7 +26,7 @@ import java.util.concurrent.RecursiveAction;
 
 public class RecursiveSiteCrawler extends RecursiveAction {
     public static final String REGEX_URL = "^(https?|ftp|file)://[-a-zA-Z0-9+&@/%=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]";
-    public static final String USER_AGENT = "GoodSearchBot";
+    public static final String USER_AGENT = "Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6";
     public static final String REFERRER = "http://www.google.com";
 
     private String url;
@@ -57,7 +57,7 @@ public class RecursiveSiteCrawler extends RecursiveAction {
             return;
         }
         try {
-            Thread.sleep(250);
+            Thread.sleep((int) ((Math.random() * 150) + 300));
 
             System.setProperty("https.protocols", "TLSv1,TLSv1.1,TLSv1.2");
             Connection.Response res = Jsoup.connect(url)
@@ -72,28 +72,28 @@ public class RecursiveSiteCrawler extends RecursiveAction {
             List<RecursiveSiteCrawler> subTasks = new ArrayList<>();
 
             for (Element item : links) {
-                String href = item.attr("abs:href");
+                String link = item.attr("abs:href");
 
-                if (visitedLinks.contains(href)) continue;
+                if (visitedLinks.contains(link)) continue;
 
-                if (href.startsWith(url)
-                        && href.matches(REGEX_URL)
-                        && !href.equals(url)
-                        && !href.contains("#")
-                        && !href.endsWith("pdf")
-                        && !href.endsWith("jpg")
-                        && !href.endsWith("jpeg")
-                        && !href.endsWith("png")) {
+                if (link.startsWith(url)
+                        && link.matches(REGEX_URL)
+                        && !link.equals(url)
+                        && !link.contains("#")
+                        && !link.endsWith("pdf")
+                        && !link.endsWith("jpg")
+                        && !link.endsWith("jpeg")
+                        && !link.endsWith("png")) {
 
-                    URL hrefUrl = new URL(href);
+                    URL hrefUrl = new URL(link);
                     String path = hrefUrl.getPath();
 
-                    visitedLinks.add(href);
+                    visitedLinks.add(link);
 
                     pageModel = new PageModel();
                     pageModel.setPath(path);
 
-                    Document docItem = Jsoup.connect(href).get();
+                    Document docItem = Jsoup.connect(link).get();
                     String html = docItem.html();
 
                     Map<String, Integer> lemmasCountMap = LemmaFinder.getInstance().wordAndCountsCollector(html);
@@ -114,7 +114,7 @@ public class RecursiveSiteCrawler extends RecursiveAction {
                         return;
                     }
 
-                    RecursiveSiteCrawler subTask = new RecursiveSiteCrawler(href, visitedLinks, siteId, siteRepository, pageRepository, lemmaRepository, indexRepository);
+                    RecursiveSiteCrawler subTask = new RecursiveSiteCrawler(link, visitedLinks, siteId, siteRepository, pageRepository, lemmaRepository, indexRepository);
                     subTask.fork();
                     subTasks.add(subTask);
                 }
@@ -125,7 +125,7 @@ public class RecursiveSiteCrawler extends RecursiveAction {
 
         } catch (HttpStatusException e) {
             e.printStackTrace();
-//            handleHttpStatusException(e); //TODO: Написать обработчик ошибок
+            handleHttpStatusException(e);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -160,26 +160,24 @@ public class RecursiveSiteCrawler extends RecursiveAction {
         }
     }
 
-//    private void handleHttpStatusException(HttpStatusException ex) {
-//        SiteModel siteModel = siteRepository.findByUrl(siteId.getUrl()).get();
-//        System.out.println(siteModel);
-//        PageModel pageModel = new PageModel();
-//
-//        String path = ex.getUrl().replaceAll("https?://[^/]+(/[^?#]*)", "$1");
-//
-//        pageModel.setCode(ex.getStatusCode());
-//        pageModel.setPath(path);
-//        pageModel.setContent("error");
-//        pageModel.setSiteId(siteModel);
-//        pageRepository.save(pageModel);
-//
-//        if (path.equals("/")) {
-//            siteModel.setLastError("Ошибка доступа");
-//        }
-//        String lastError = siteModel.getLastError();
-//        System.out.println(lastError);
-//        siteModel.setStatusTime(LocalDateTime.now());
-//        siteRepository.save(siteModel);
-//    }
+    private void handleHttpStatusException(HttpStatusException ex) {
+        SiteModel siteModel = siteRepository.findByUrl(siteId.getUrl()).get();
+
+        String path = ex.getUrl().replaceAll("https?://[^/]+(/[^?#]*)", "$1");
+
+        PageModel pageModel = new PageModel();
+        pageModel.setCode(ex.getStatusCode());
+        pageModel.setPath(path);
+        pageModel.setContent("error");
+        pageModel.setSiteId(siteModel);
+        pageRepository.save(pageModel);
+
+        if (path.startsWith("htt")) {
+            siteModel.setLastError("Ошибка");
+        }
+
+        siteModel.setStatusTime(LocalDateTime.now());
+        siteRepository.save(siteModel);
+    }
 }
 
