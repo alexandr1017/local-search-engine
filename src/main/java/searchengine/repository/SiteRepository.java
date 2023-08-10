@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.model.IndexModel;
+import searchengine.model.LemmaModel;
 import searchengine.model.SiteModel;
 
 
@@ -19,6 +20,8 @@ public interface SiteRepository extends JpaRepository<SiteModel,Integer> {
     void deleteByUrl(String url);
 
     Optional<SiteModel> findByUrl(String url);
+
+
 
 
 }

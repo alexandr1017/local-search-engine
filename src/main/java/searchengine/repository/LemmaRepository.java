@@ -12,4 +12,11 @@ public interface LemmaRepository extends JpaRepository<LemmaModel,Integer> {
     @Query(nativeQuery = true,
             value = "select * from lemma where lemma.lemma=?1")
     List<LemmaModel> findByLemma(String lemma);
+
+    @Query(nativeQuery = true,
+            value = "select COUNT(*) from lemma where lemma.site_id=:siteId")
+    Integer findCountOfLemmasBySiteId (Integer siteId);
+    @Query(nativeQuery = true,
+            value = "select COUNT(*) from lemma")
+    Integer countOfLemmas ();
 }

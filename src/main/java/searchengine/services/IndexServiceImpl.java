@@ -28,7 +28,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
@@ -103,7 +102,7 @@ public class IndexServiceImpl implements IndexingService {
             if (lastError == null) {
                 updateSiteStatus(siteModel, "INDEXED", "");
             } else if (lastError.startsWith("Ошибка")) {
-                updateSiteStatus(siteModel, "FAILED", "Ошибка. Нет доступа к сайту");
+                updateSiteStatus(siteModel, "FAILED", "Ошибка индексации: главная страница сайта не доступна");
             }
 
         }
@@ -200,7 +199,7 @@ public class IndexServiceImpl implements IndexingService {
             if (!isSiteExist) {
                 createNewSite(siteUrl);
             }
-            handleHttpStatusException(ex, path, siteUrl);
+            handlePageHttpStatusException(ex, path, siteUrl);
             throw new IncorrectURIException("Страница не доступна. Код: " + ex.getStatusCode());
         }
     }
@@ -234,7 +233,7 @@ public class IndexServiceImpl implements IndexingService {
         }
     }
 
-    private void handleHttpStatusException(HttpStatusException ex, String path, String siteUrl) {
+    private void handlePageHttpStatusException(HttpStatusException ex, String path, String siteUrl) {
         SiteModel siteModel = siteRepository.findByUrl(siteUrl).get();
         PageModel pageModel = new PageModel();
 
@@ -246,7 +245,7 @@ public class IndexServiceImpl implements IndexingService {
 
         siteModel.setStatus("FAILED");
         siteModel.setStatusTime(LocalDateTime.now());
-        siteModel.setLastError("Индексация страницы не выполнена. Страница не доступна. Код: " + ex.getStatusCode());
+        siteModel.setLastError("Ошибка индексации: страница не доступна");
         siteRepository.save(siteModel);
     }
 
