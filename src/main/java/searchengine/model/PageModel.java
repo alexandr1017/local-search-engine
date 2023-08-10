@@ -11,7 +11,7 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @Entity
-@Table(name = "page", indexes = {@Index(name = "path_index", columnList = "`path`", unique = true)})
+@Table(name = "page", indexes = {@Index(name = "siteId_path_index", columnList = "site_id, `path`",unique = true)})
 
 public class PageModel {
 

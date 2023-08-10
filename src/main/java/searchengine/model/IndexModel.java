@@ -24,5 +24,5 @@ public class IndexModel {
     @JoinColumn(name = "lemma_id",nullable = false)
     private LemmaModel lemmaId;
     @Column(name = "`rank`",columnDefinition = "FLOAT", nullable = false)
-    private Float rank;
+    private float rank;
 }

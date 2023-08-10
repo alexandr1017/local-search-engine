@@ -1,6 +1,5 @@
 package searchengine.services;
 
-import org.jsoup.Connection;
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -9,23 +8,27 @@ import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.indexing.IndexingResponse;
-import searchengine.dto.indexing.IndexingResponseFail;
 import searchengine.exceptions.IncorrectURIException;
 import searchengine.exceptions.IndexingAlreadyStartedException;
+import searchengine.model.IndexModel;
+import searchengine.model.LemmaModel;
 import searchengine.model.PageModel;
 import searchengine.model.SiteModel;
+import searchengine.repository.IndexRepository;
+import searchengine.repository.LemmaRepository;
 import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
+import searchengine.util.LemmaFinder;
 import searchengine.util.RecursiveSiteCrawler;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.LocalDateTime;
 
-import java.util.List;
+import java.util.*;
 
-import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
@@ -39,6 +42,10 @@ public class IndexServiceImpl implements IndexingService {
     private SiteRepository siteRepository;
     @Autowired
     private PageRepository pageRepository;
+    @Autowired
+    private LemmaRepository lemmaRepository;
+    @Autowired
+    private IndexRepository indexRepository;
 
     public static volatile Boolean isRunning = false;
     private static volatile Boolean isStopped = false;
@@ -76,7 +83,12 @@ public class IndexServiceImpl implements IndexingService {
 
         for (SiteModel siteModel : allSiteModels) {
 
-            RecursiveSiteCrawler recursiveSiteCrawlerTask = new RecursiveSiteCrawler(siteModel.getUrl(), siteModel, siteRepository, pageRepository);
+//            HashSet<String> visitedLinks = new HashSet<>();
+//            Set<String> visitedLinks = ConcurrentHashMap.newKeySet();
+//            Set<String> visitedLinks = Collections.synchronizedSet(new HashSet<String>());
+            CopyOnWriteArrayList<String> visitedLinks = new CopyOnWriteArrayList<>();
+            RecursiveSiteCrawler recursiveSiteCrawlerTask = new RecursiveSiteCrawler(siteModel.getUrl(),visitedLinks, siteModel, siteRepository, pageRepository, lemmaRepository, indexRepository);
+
             pool = new ForkJoinPool();
             pool.execute(recursiveSiteCrawlerTask);
 
@@ -111,14 +123,20 @@ public class IndexServiceImpl implements IndexingService {
 
         List<SiteModel> siteList = siteRepository.findAll();
         for (SiteModel siteModel : siteList) {
+
+            if(siteModel.getLastError().startsWith("Ошибка")) {
+                siteModel.setStatusTime(LocalDateTime.now());
+                siteModel.setStatus("FAILED");
+            }
+
             if (siteModel.getStatus().equals("INDEXING")) {
 
                 siteModel.setStatusTime(LocalDateTime.now());
                 siteModel.setStatus("FAILED");
                 siteModel.setLastError("Индексация остановлена пользователем");
-
-                siteRepository.save(siteModel);
             }
+
+            siteRepository.save(siteModel);
         }
         return new IndexingResponse(true);
     }
@@ -147,19 +165,33 @@ public class IndexServiceImpl implements IndexingService {
             Document docItem = Jsoup.connect(uri).get();
             String html = docItem.html();
 
+            Map<String, Integer> lemmasCountMap = LemmaFinder.getInstance().wordAndCountsCollector(html);
+
             if (!isPageExist) {
                 if (!isSiteExist) {
                     SiteModel siteModel = createNewSite(siteUrl);
-                    createNewPage(path, html, siteModel);
+                    PageModel pageModel = createNewPage(path, html, siteModel);
+
+                    lemmaAndIndexBuilder(lemmasCountMap, siteModel, pageModel);
+
+                    updateSiteStatus(siteModel, "INDEXED");
                 } else {
                     SiteModel siteModel = siteModelOptional.get();
-                    createNewPage(path, html, siteModel);
+                    PageModel pageModel = createNewPage(path, html, siteModel);
+
+                    lemmaAndIndexBuilder(lemmasCountMap, siteModel, pageModel);
+
                     updateSiteStatus(siteModel, "INDEXED");
+
                 }
             } else {
                 SiteModel siteModel = siteModelOptional.get();
                 PageModel pageModel = pageModelOptional.get();
+
                 updatePageContent(pageModel, html);
+
+                lemmaAndIndexBuilder(lemmasCountMap, siteModel, pageModel);
+
                 updateSiteStatus(siteModel, "INDEXED");
             }
 
@@ -171,6 +203,35 @@ public class IndexServiceImpl implements IndexingService {
             }
             handleHttpStatusException(ex, path, siteUrl);
             throw new IncorrectURIException("Страница не доступна. Код: " + ex.getStatusCode());
+        }
+    }
+
+    private void lemmaAndIndexBuilder(Map<String, Integer> lemmasCountMap, SiteModel siteModel, PageModel pageModel) {
+        lemmasCountMap.forEach((lemma, rate) -> {
+            LemmaModel lemmaModel = new LemmaModel();
+            lemmaModel.setLemma(lemma);
+            lemmaModel.setSiteId(siteModel);
+            lemmaModel = addLemmaToDB(lemmaModel);
+
+            IndexModel indexModel = new IndexModel();
+            indexModel.setLemmaId(lemmaModel);
+            indexModel.setPageId(pageModel);
+            indexModel.setRank(rate);
+            lemmaRepository.save(lemmaModel);
+            indexRepository.save(indexModel);
+        });
+    }
+
+    private LemmaModel addLemmaToDB(LemmaModel lemmaModel) {
+        List<LemmaModel> lemmaList = lemmaRepository.findByLemma(lemmaModel.getLemma());
+
+        if (lemmaList.size() == 0) {
+            lemmaModel.setFrequency(1);
+            return lemmaRepository.save(lemmaModel);
+        } else {
+            LemmaModel lemmaFromDb = lemmaList.get(0);
+            lemmaFromDb.setFrequency(lemmaFromDb.getFrequency() + 1);
+            return lemmaRepository.save(lemmaFromDb);
         }
     }
 
@@ -197,13 +258,13 @@ public class IndexServiceImpl implements IndexingService {
         siteRepository.save(siteModel);
     }
 
-    private void createNewPage(String path, String html, SiteModel siteModel) {
+    private PageModel createNewPage(String path, String html, SiteModel siteModel) {
         PageModel pageModel = new PageModel();
         pageModel.setContent(html);
         pageModel.setCode(200);
         pageModel.setSiteId(siteModel);
         pageModel.setPath(path);
-        pageRepository.save(pageModel);
+        return pageRepository.save(pageModel);
     }
 
     private SiteModel createNewSite(String siteUrl) {
