@@ -8,16 +8,16 @@ indexing-settings:
 #      name: Skillbox
     - url: http://www.playback.ru
       name: PlayBack.Ru
-    - url: https://dombulgakova.ru
-      name: Дом Булгакова
-#    - url: https://ipfran.ru
+#    - url: https://dombulgakova.ru
+#      name: Дом Булгакова
+##    - url: https://ipfran.ru
 #      name: ИПФ РАН
 #    - url: https://dimonvideo.ru
 #      name: DimonVideo - программы | игры | фильмы | книги » Страница 1
 #    - url: https://nikoartgallery.com
 #      name: Галерея искусств Niko
-#    - url: https://et-cetera.ru
-#      name: Театр «Et Cetera»
+    - url: https://et-cetera.ru
+      name: Театр «Et Cetera»
 #    - url: https://www.lutherancathedral.ru
 #      name: Собор Петра и Павла - Собор Петра и Павла
 #    - url: https://www.svetlovka.ru

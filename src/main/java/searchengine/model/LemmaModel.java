@@ -27,7 +27,7 @@ public class LemmaModel {
     @Column(nullable = false)
     private Integer frequency;
 
-    @OneToMany(mappedBy = "lemmaId",fetch = FetchType.LAZY)
-    private Set<IndexModel> indexSet;
+//    @OneToMany(mappedBy = "lemmaId",fetch = FetchType.LAZY)
+//    private Set<IndexModel> indexSet;
 
 }

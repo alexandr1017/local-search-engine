@@ -59,7 +59,7 @@ public class LemmaFinder {
         return wordCounts;
     }
 
-    private String clearHtmlToCyrillicText(String textHtml) {
+    public String clearHtmlToCyrillicText(String textHtml) {
         return textHtml.toLowerCase(Locale.ROOT)
                 .replaceAll("<script.*?</script>", " ")
                 .replaceAll("<[^>]*>", " ")
@@ -80,5 +80,35 @@ public class LemmaFinder {
             }
         }
         return false;
+    }
+
+
+    public Map<String, String> wordOriginAndNormalMap(String textQuery) {
+        Map<String, String> wordOriginAndNormal = new HashMap<>();
+
+        String pureText = clearHtmlToCyrillicText(textQuery);
+
+        String[] words = pureText.split(" ");
+
+        for (String word : words) {
+            if (word.length() < 3) {
+                continue;
+            }
+
+            List<String> wordBaseForms = luceneMorphology.getMorphInfo(word);
+            if (anyWordBaseBelongToParticle(wordBaseForms)) {
+                continue;
+            }
+
+            List<String> normalForms = luceneMorphology.getNormalForms(word);
+            if (normalForms.isEmpty()) {
+                continue;
+            }
+
+            String normalWord = normalForms.get(0);
+
+            wordOriginAndNormal.put(word,normalWord);
+        }
+        return wordOriginAndNormal;
     }
 }

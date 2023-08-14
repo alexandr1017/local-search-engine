@@ -10,7 +10,9 @@ import java.util.Map;
 
 public interface IndexingService {
 
-    public IndexingResponse startIndexing () throws MalformedURLException;
-    public IndexingResponse stopIndexing () throws InterruptedException;
-    public IndexingResponse addPageToIndex(String path) throws IOException;
+    IndexingResponse startIndexing() throws MalformedURLException;
+
+    IndexingResponse stopIndexing() throws InterruptedException;
+
+    IndexingResponse addPageToIndex(String path) throws IOException;
 }

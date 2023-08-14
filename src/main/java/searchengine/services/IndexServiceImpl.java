@@ -23,6 +23,7 @@ import searchengine.util.RecursiveSiteCrawler;
 
 import java.io.IOException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.time.LocalDateTime;
 
 import java.util.*;
@@ -141,15 +142,17 @@ public class IndexServiceImpl implements IndexingService {
 
     @Override
     public IndexingResponse addPageToIndex(String uri) throws IOException {
-        URL url = new URL(uri);
+        String[] split = URLDecoder.decode(uri).split("=");
+        String urlDecode = split[1];
+        URL url = new URL(urlDecode);
         String path = url.getPath();
-        String siteUrl = uri.replaceAll("^(https?://[^/]+)(/.*)?$", "$1");
+        String siteUrl = urlDecode.replaceAll("^(https?://[^/]+)(/.*)?$", "$1");
 
         if (searchSiteInConfig(siteUrl) == null) {
             throw new IncorrectURIException("Данная страница находится за пределами сайтов, указанных в конфигурационном файле");
         }
 
-        if (!uri.matches(RecursiveSiteCrawler.REGEX_URL)) {
+        if (!urlDecode.matches(RecursiveSiteCrawler.REGEX_URL)) {
             throw new IncorrectURIException("Ошибочный адрес страницы");
         }
 
@@ -160,7 +163,7 @@ public class IndexServiceImpl implements IndexingService {
         boolean isSiteExist = siteModelOptional.isPresent();
 
         try {
-            Document docItem = Jsoup.connect(uri).get();
+            Document docItem = Jsoup.connect(urlDecode).get();
             String html = docItem.html();
 
             Map<String, Integer> lemmasCountMap = LemmaFinder.getInstance().wordAndCountsCollector(html);

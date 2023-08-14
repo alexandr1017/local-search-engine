@@ -29,10 +29,10 @@ public class SiteModel {
     @Column(columnDefinition = "VARCHAR(255)",nullable = false, unique = true)
     private String name;
 
-    @OneToMany(mappedBy = "siteId",fetch = FetchType.LAZY)
-    private Set<PageModel> pageSet;
-    @OneToMany(mappedBy = "siteId",fetch = FetchType.LAZY)
-    private Set<LemmaModel> lemmaSet;
+//    @OneToMany(mappedBy = "siteId",fetch = FetchType.LAZY)
+//    private Set<PageModel> pageSet;
+//    @OneToMany(mappedBy = "siteId",fetch = FetchType.LAZY)
+//    private Set<LemmaModel> lemmaSet;
 
     public SiteModel (){
         setStatus("INDEXING");

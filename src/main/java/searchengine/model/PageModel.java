@@ -32,6 +32,6 @@ public class PageModel {
     @Column(columnDefinition = "MEDIUMTEXT CHARACTER SET utf8mb4", nullable = false)
     private String content;
 
-    @OneToMany(mappedBy = "pageId", fetch = FetchType.LAZY)
-    private Set<IndexModel> indexSet;
+//    @OneToMany(mappedBy = "pageId", fetch = FetchType.LAZY)
+//    private Set<IndexModel> indexSet;
 }
