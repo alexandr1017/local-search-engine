@@ -1,7 +1,5 @@
 package searchengine.services;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.dto.search.SearchItem;
@@ -34,45 +32,25 @@ public class SearchServiceImpl implements SearchService {
     @Autowired
     private PageRepository pageRepository;
 
-//    @Override
-//    public SearchResponse search(String query,
-//
-//                                 int offset,
-//                                 int limit) throws IOException {
-//        search()
-//    }
-
 
     @Override
-    public SearchResponse search(String query,
-                                 String site,
-                                 int offset,
-                                 int limit) throws IOException {
+    public SearchResponse search(String query, String site, int offset, int limit) throws IOException {
 
         Optional<SiteModel> siteModelOptional = siteRepository.findByUrl(site);
 
-        if (siteModelOptional.isEmpty()) {
+        if (siteModelOptional.isEmpty() && !site.isEmpty()) {
             throw new SearchException("Данный сайт не проиндексирован");
         }
 
-
-        SiteModel siteModel = siteModelOptional.get();
         Set<String> lemmasQuerySet = LemmaFinder.getInstance()
                 .wordAndCountsCollector(query)
                 .keySet();
 
-
-        List<LemmaModel> lemmaModelsListOfDB = new ArrayList<>();
-        for (String lemma : lemmasQuerySet) {
-            LemmaModel lemmaModel = lemmaRepository.customSelectFromLemmaDB(siteModel.getId(), lemma);
-            if (lemmaModel == null) continue;
-            lemmaModelsListOfDB.add(lemmaModel);
-        }
+        List<LemmaModel> lemmaModelsListOfDB = searchLemmasFromDB(site, siteModelOptional, lemmasQuerySet);
 
         if (lemmaModelsListOfDB.isEmpty()) {
             throw new SearchException("Поиск не дал результатов");
         }
-
 
         List<LemmaModel> sortedLemmasListToFreq = lemmaModelsListOfDB.stream()
                 .sorted(Comparator.comparing(LemmaModel::getFrequency))
@@ -97,12 +75,30 @@ public class SearchServiceImpl implements SearchService {
                 ));
 
 
-        List<SearchItem> data = buildDataResult(query, siteModel, sortedRelevanceMap);
+        List<SearchItem> data = buildDataResult(query, sortedRelevanceMap);
 
         return new SearchResponsePositive(data.size(), data);
     }
 
-    private List<SearchItem> buildDataResult(String query, SiteModel siteModel, Map<PageModel, Double> sortedRelevanceMap) throws IOException {
+    private List<LemmaModel> searchLemmasFromDB(String site, Optional<SiteModel> siteModelOptional, Set<String> lemmasQuerySet) {
+        List<LemmaModel> lemmaModelsListOfDB = new ArrayList<>();
+        for (String lemma : lemmasQuerySet) {
+            LemmaModel lemmaModel;
+
+            if (site == null || site.isEmpty()) {
+                lemmaModel = lemmaRepository.customSelectAllSitesFromLemmaDB(lemma);
+            } else {
+                lemmaModel = lemmaRepository.customSelectFromLemmaDB(siteModelOptional.get().getId(), lemma);
+            }
+
+            if (lemmaModel == null) continue;
+
+            lemmaModelsListOfDB.add(lemmaModel);
+        }
+        return lemmaModelsListOfDB;
+    }
+
+    private List<SearchItem> buildDataResult(String query, Map<PageModel, Double> sortedRelevanceMap) throws IOException {
         List<SearchItem> data = new ArrayList<>();
         String clearQuery = LemmaFinder.getInstance().clearHtmlToCyrillicText(query);
 
@@ -110,10 +106,11 @@ public class SearchServiceImpl implements SearchService {
 
             SearchItem searchItem = new SearchItem();
             searchItem.setRelevance(relevance);
-            searchItem.setSite(siteModel.getUrl());
-            searchItem.setSiteName(siteModel.getName());
+            searchItem.setSite(page.getSiteId().getUrl());
+            searchItem.setSiteName(page.getSiteId().getName());
             searchItem.setUri(page.getPath());
-            String clearText = "";
+            searchItem.setTitle(getTitle(page));
+            String clearText;
 
             try {
                 clearText = LemmaFinder.getInstance().clearHtmlToCyrillicText(page.getContent());
@@ -195,6 +192,20 @@ public class SearchServiceImpl implements SearchService {
             }
         }
         return snippet;
+    }
+
+    private String getTitle(PageModel page) {
+        String pageContent = page.getContent();
+        int titleTextStartIndex = pageContent.indexOf("<title>");
+        int titleTextEndIndex = pageContent.indexOf("</title>");
+
+        if (titleTextStartIndex == -1 || titleTextEndIndex == -1) {
+            return "";
+        }
+
+        titleTextStartIndex += 7;
+
+        return pageContent.substring(titleTextStartIndex, titleTextEndIndex);
     }
 }
 

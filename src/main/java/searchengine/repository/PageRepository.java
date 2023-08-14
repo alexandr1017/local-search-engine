@@ -12,17 +12,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface PageRepository extends JpaRepository<PageModel,Integer> {
+public interface PageRepository extends JpaRepository<PageModel, Integer> {
     Optional<PageModel> findByPath(String path);
 
     @Query(nativeQuery = true,
             value = "select COUNT(*) from page where page.site_id=:siteId")
-    Integer findCountOfPagesBySiteId (Integer siteId);
-    @Query(nativeQuery = true,
-            value = "select COUNT(*) from page")
-    Integer countOfPages ();
+    Integer findCountOfPagesBySiteId(Integer siteId);
 
-//    List<PageModel> findByIdIn(List<Integer> ids);
-@Query("SELECT p FROM PageModel p WHERE p.id IN :ids")
-List<PageModel> findPagesByIds(@Param("ids") List<Integer> ids);
+    @Query("SELECT p FROM PageModel p WHERE p.id IN :ids")
+    List<PageModel> findPagesByIds(@Param("ids") List<Integer> ids);
 }
