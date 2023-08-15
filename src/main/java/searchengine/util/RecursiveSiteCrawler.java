@@ -30,7 +30,6 @@ public class RecursiveSiteCrawler extends RecursiveAction {
 
     private String url;
     private SiteModel siteId;
-
     private Set<String> visitedLinks;
     private SiteRepository siteRepository;
     private PageRepository pageRepository;
