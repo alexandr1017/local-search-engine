@@ -30,7 +30,6 @@ public class RecursiveSiteCrawler extends RecursiveAction {
 
     private String url;
     private SiteModel siteId;
-    private PageModel pageModel;
 
     private Set<String> visitedLinks;
     private SiteRepository siteRepository;
@@ -89,24 +88,17 @@ public class RecursiveSiteCrawler extends RecursiveAction {
 
                     visitedLinks.add(link);
 
-                    pageModel = new PageModel();
-                    pageModel.setPath(path);
 
                     Document docItem = Jsoup.connect(link).get();
                     String html = docItem.html();
 
                     Map<String, Integer> lemmasCountMap = LemmaFinder.getInstance().wordAndCountsCollector(html);
 
-
-                    pageModel.setContent(html);
-                    pageModel.setCode(statusCode);
-                    pageModel.setSiteId(siteId);
-                    pageRepository.save(pageModel);
+                    PageModel pageModel = createPageModel(statusCode, path, html);
 
                     lemmaAndIndexBuilder(lemmasCountMap, siteId, pageModel);
 
-                    siteId.setStatusTime(LocalDateTime.now());
-                    siteRepository.save(siteId);
+                    updateSiteModelDateTime(siteId);
 
 
                     if (!IndexServiceImpl.isRunning) {
@@ -128,6 +120,20 @@ public class RecursiveSiteCrawler extends RecursiveAction {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private PageModel createPageModel(int statusCode, String path, String html) {
+        PageModel pageModel = new PageModel();
+        pageModel.setPath(path);
+        pageModel.setContent(html);
+        pageModel.setCode(statusCode);
+        pageModel.setSiteId(siteId);
+        return pageRepository.save(pageModel);
+    }
+
+    private void updateSiteModelDateTime(SiteModel siteId) {
+        siteId.setStatusTime(LocalDateTime.now());
+        siteRepository.save(siteId);
     }
 
     private void lemmaAndIndexBuilder(Map<String, Integer> lemmasCountMap, SiteModel siteModel, PageModel pageModel) {
@@ -175,8 +181,7 @@ public class RecursiveSiteCrawler extends RecursiveAction {
             siteModel.setLastError("Ошибка");
         }
 
-        siteModel.setStatusTime(LocalDateTime.now());
-        siteRepository.save(siteModel);
+        updateSiteModelDateTime(siteModel);
     }
 }
 
