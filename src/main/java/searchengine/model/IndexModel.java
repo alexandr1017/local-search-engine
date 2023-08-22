@@ -16,13 +16,13 @@ public class IndexModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     @ManyToOne(fetch = FetchType.LAZY)
-    @OnDelete(action= OnDeleteAction.CASCADE)
-    @JoinColumn(name = "page_id",nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "page_id", nullable = false)
     private PageModel pageId;
     @ManyToOne(fetch = FetchType.LAZY)
-    @OnDelete(action=OnDeleteAction.CASCADE)
-    @JoinColumn(name = "lemma_id",nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "lemma_id", nullable = false)
     private LemmaModel lemmaId;
-    @Column(name = "`rank`",columnDefinition = "FLOAT", nullable = false)
+    @Column(name = "`rank`", columnDefinition = "FLOAT", nullable = false)
     private float rank;
 }

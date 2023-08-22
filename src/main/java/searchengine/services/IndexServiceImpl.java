@@ -64,7 +64,7 @@ public class IndexServiceImpl implements IndexingService {
     }
 
 
-    public IndexingResponse sitesParsing() {
+    public void sitesParsing() {
 
         List<Site> sites = sitesList.getSites();
 
@@ -105,15 +105,12 @@ public class IndexServiceImpl implements IndexingService {
             } else if (lastError.startsWith("Ошибка")) {
                 updateSiteStatus(siteModel, "FAILED", "Ошибка индексации: главная страница сайта не доступна");
             }
-
         }
-
         isRunning = false;
-        return new IndexingResponse(true);
     }
 
     @Override
-    public IndexingResponse stopIndexing() throws InterruptedException {
+    public IndexingResponse stopIndexing() {
         if (!isRunning) {
             throw new IndexingAlreadyStartedException("Индексация не запущена");
         } else {
@@ -126,7 +123,6 @@ public class IndexServiceImpl implements IndexingService {
         List<SiteModel> siteList = siteRepository.findAll();
         for (SiteModel siteModel : siteList) {
 
-
             if (siteModel.getStatus().equals("INDEXING")) {
 
                 siteModel.setStatusTime(LocalDateTime.now());
@@ -134,8 +130,6 @@ public class IndexServiceImpl implements IndexingService {
                 siteModel.setLastError("Индексация остановлена пользователем");
                 siteRepository.save(siteModel);
             }
-
-
         }
         return new IndexingResponse(true);
     }

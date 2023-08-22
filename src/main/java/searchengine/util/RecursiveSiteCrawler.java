@@ -87,7 +87,6 @@ public class RecursiveSiteCrawler extends RecursiveAction {
 
                     visitedLinks.add(link);
 
-
                     Document docItem = Jsoup.connect(link).get();
                     String html = docItem.html();
 

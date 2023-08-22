@@ -38,7 +38,7 @@ public class ApiController {
     }
 
     @GetMapping("/stopIndexing")
-    public ResponseEntity<IndexingResponse> stopIndexing() throws InterruptedException {
+    public ResponseEntity<IndexingResponse> stopIndexing() {
         IndexingResponse indexingResponse = indexingService.stopIndexing();
         return ResponseEntity.ok(indexingResponse);
     }
@@ -52,7 +52,7 @@ public class ApiController {
     @GetMapping("/search")
     public ResponseEntity<SearchResponse> search(
             @RequestParam(name = "query") String query,
-            @RequestParam(name = "site",defaultValue = "") String site,
+            @RequestParam(name = "site", defaultValue = "") String site,
             @RequestParam(name = "offset", defaultValue = "0") int offset,
             @RequestParam(name = "limit", defaultValue = "20") int limit) throws IOException {
         SearchResponse searchResponse = searchService.search(query, site, offset, limit);

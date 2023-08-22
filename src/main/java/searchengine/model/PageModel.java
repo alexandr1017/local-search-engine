@@ -6,12 +6,12 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.*;
-import java.util.Set;
+import javax.persistence.Index;
 
 @Data
 @NoArgsConstructor
 @Entity
-@Table(name = "page", indexes = {@Index(name = "siteId_path_index", columnList = "site_id, `path`",unique = true)})
+@Table(name = "page", indexes = {@Index(name = "siteId_path_index", columnList = "site_id, `path`", unique = true)})
 
 public class PageModel {
 
@@ -20,7 +20,7 @@ public class PageModel {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @OnDelete(action=OnDeleteAction.CASCADE)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "site_id", nullable = false)
     private SiteModel siteId;
 
@@ -32,6 +32,4 @@ public class PageModel {
     @Column(columnDefinition = "MEDIUMTEXT CHARACTER SET utf8mb4", nullable = false)
     private String content;
 
-//    @OneToMany(mappedBy = "pageId", fetch = FetchType.LAZY)
-//    private Set<IndexModel> indexSet;
 }

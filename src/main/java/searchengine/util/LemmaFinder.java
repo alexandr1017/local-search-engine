@@ -1,6 +1,6 @@
 package searchengine.util;
 
-import org.apache.lucene.morphology.LuceneMorphology;
+import org.apache.lucene.morphology.english.EnglishLuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 
 import java.io.IOException;
@@ -10,64 +10,82 @@ import java.util.Locale;
 import java.util.Map;
 
 public class LemmaFinder {
+    private static final String REGEX_RUS = "^[а-я]+$";
+    private static final String REGEX_ENG = "^[a-z]+$";
 
-    private static final String[] PARTICLES_NAMES = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ"};
-    private final LuceneMorphology luceneMorphology;
+    private static final String[] PARTICLES_NAMES = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ", "CONJ", "ADJECTIVE", "PREP", "ADVERB", "PART"};
+    private final RussianLuceneMorphology russianLuceneMorphology;
+    private final EnglishLuceneMorphology englishLuceneMorphology;
 
 
-
-    private LemmaFinder(LuceneMorphology luceneMorphology) {
-        this.luceneMorphology = luceneMorphology;
+    private LemmaFinder(RussianLuceneMorphology russianLuceneMorphology, EnglishLuceneMorphology englishLuceneMorphology) {
+        this.russianLuceneMorphology = russianLuceneMorphology;
+        this.englishLuceneMorphology = englishLuceneMorphology;
     }
 
     public static LemmaFinder getInstance() throws IOException {
-        LuceneMorphology morphology= new RussianLuceneMorphology();
-        return new LemmaFinder(morphology);
+        RussianLuceneMorphology russianLuceneMorphology = new RussianLuceneMorphology();
+        EnglishLuceneMorphology englishLuceneMorphology = new EnglishLuceneMorphology();
+        return new LemmaFinder(russianLuceneMorphology, englishLuceneMorphology);
     }
 
 
     public Map<String, Integer> wordAndCountsCollector(String text) {
         Map<String, Integer> wordCounts = new HashMap<>();
-
-        String pureText = clearHtmlToCyrillicText(text);
-
+        String pureText = clearHtmlToText(text);
         String[] words = pureText.split(" ");
 
         for (String word : words) {
-            if (word.length() < 3) {
+            if (word.length() < 2) {
                 continue;
             }
 
-            List<String> wordBaseForms = luceneMorphology.getMorphInfo(word);
-            if (anyWordBaseBelongToParticle(wordBaseForms)) {
-                continue;
+            if (word.matches(REGEX_RUS)) {
+                List<String> russianNormalForms = russianLuceneMorphology.getNormalForms(word);
+
+                List<String> wordBaseForms = russianLuceneMorphology.getMorphInfo(word);
+                if (anyWordBaseBelongToParticle(wordBaseForms)) {
+                    continue;
+                }
+                if (russianNormalForms.isEmpty()) {
+                    continue;
+                }
+                addWordAndCountToMap(wordCounts, russianNormalForms);
             }
 
-            List<String> normalForms = luceneMorphology.getNormalForms(word);
-            if (normalForms.isEmpty()) {
-                continue;
-            }
+            if (word.matches(REGEX_ENG)) {
+                List<String> englishNormalForms = englishLuceneMorphology.getNormalForms(word);
 
-            String normalWord = normalForms.get(0);
-
-            if (wordCounts.containsKey(normalWord)) {
-                wordCounts.put(normalWord, wordCounts.get(normalWord) + 1);
-            } else {
-                wordCounts.put(normalWord, 1);
+                List<String> wordBaseForms = englishLuceneMorphology.getMorphInfo(word);
+                if (anyWordBaseBelongToParticle(wordBaseForms)) {
+                    continue;
+                }
+                if (englishNormalForms.isEmpty()) {
+                    continue;
+                }
+                addWordAndCountToMap(wordCounts, englishNormalForms);
             }
         }
         return wordCounts;
     }
 
-    public String clearHtmlToCyrillicText(String textHtml) {
+    private void addWordAndCountToMap(Map<String, Integer> wordCounts, List<String> normalFormsList) {
+        String normalWord = normalFormsList.get(0);
+        if (wordCounts.containsKey(normalWord)) {
+            wordCounts.put(normalWord, wordCounts.get(normalWord) + 1);
+        } else {
+            wordCounts.put(normalWord, 1);
+        }
+    }
+
+    public String clearHtmlToText(String textHtml) {
         return textHtml.toLowerCase(Locale.ROOT)
                 .replaceAll("<script.*?</script>", " ")
                 .replaceAll("<[^>]*>", " ")
-                .replaceAll("([^а-я])", " ")
+                .replaceAll("([^а-яa-z])", " ")
                 .replaceAll("\\s+", " ")
                 .trim();
     }
-
 
     private boolean anyWordBaseBelongToParticle(List<String> wordBaseForms) {
         return wordBaseForms.stream().anyMatch(this::hasParticleProperty);
@@ -80,35 +98,5 @@ public class LemmaFinder {
             }
         }
         return false;
-    }
-
-
-    public Map<String, String> wordOriginAndNormalMap(String textQuery) {
-        Map<String, String> wordOriginAndNormal = new HashMap<>();
-
-        String pureText = clearHtmlToCyrillicText(textQuery);
-
-        String[] words = pureText.split(" ");
-
-        for (String word : words) {
-            if (word.length() < 3) {
-                continue;
-            }
-
-            List<String> wordBaseForms = luceneMorphology.getMorphInfo(word);
-            if (anyWordBaseBelongToParticle(wordBaseForms)) {
-                continue;
-            }
-
-            List<String> normalForms = luceneMorphology.getNormalForms(word);
-            if (normalForms.isEmpty()) {
-                continue;
-            }
-
-            String normalWord = normalForms.get(0);
-
-            wordOriginAndNormal.put(word,normalWord);
-        }
-        return wordOriginAndNormal;
     }
 }

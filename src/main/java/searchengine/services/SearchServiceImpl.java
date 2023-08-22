@@ -1,5 +1,6 @@
 package searchengine.services;
 
+import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.dto.search.SearchItem;
@@ -98,9 +99,8 @@ public class SearchServiceImpl implements SearchService {
         return lemmaModelsListOfDB;
     }
 
-    private List<SearchItem> buildDataResult(String query, Map<PageModel, Double> sortedRelevanceMap) throws IOException {
+    private List<SearchItem> buildDataResult(String query, Map<PageModel, Double> sortedRelevanceMap) {
         List<SearchItem> data = new ArrayList<>();
-        String clearQuery = LemmaFinder.getInstance().clearHtmlToCyrillicText(query);
 
         sortedRelevanceMap.forEach((page, relevance) -> {
 
@@ -110,15 +110,7 @@ public class SearchServiceImpl implements SearchService {
             searchItem.setSiteName(page.getSiteId().getName());
             searchItem.setUri(page.getPath());
             searchItem.setTitle(getTitle(page));
-            String clearText;
-
-            try {
-                clearText = LemmaFinder.getInstance().clearHtmlToCyrillicText(page.getContent());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-            searchItem.setSnippet(getSnippet(clearText, clearQuery));
+            searchItem.setSnippet(getSnippet(page.getContent(), query));
             data.add(searchItem);
         });
         return data;
@@ -164,17 +156,21 @@ public class SearchServiceImpl implements SearchService {
         return pages;
     }
 
-    private String getSnippet(String contentOfPage, String query) {
+    private String getSnippet(String htmlContent, String query) {
+        String clearQuery = clearString(query);
+        String contentOfPage = Jsoup.parse(htmlContent).getElementsContainingOwnText(clearQuery).text();
+        String clearTextOfPage = clearString(contentOfPage);
+        String defaultTextOnPage = Jsoup.parse(htmlContent).body().text().substring(0, 150);
 
-        int index = contentOfPage.indexOf(query);
+        int index = clearTextOfPage.indexOf(clearQuery);
         int maxCount = 0;
         int startIndex = 0;
         while (index >= 0) {
             int count = 1;
-            int endIndex = index + query.length();
-            while ((index = contentOfPage.indexOf(query, endIndex)) >= 0 && index - endIndex <= 50) {
+            int endIndex = index + clearQuery.length();
+            while ((index = clearTextOfPage.indexOf(clearQuery, endIndex)) >= 0 && index - endIndex <= 50) {
                 count++;
-                endIndex = index + query.length();
+                endIndex = index + clearQuery.length();
             }
 
             if (count > maxCount) {
@@ -182,16 +178,22 @@ public class SearchServiceImpl implements SearchService {
                 startIndex = Math.max(0, endIndex - 100);
             }
         }
-        String snippet = contentOfPage.substring(startIndex, Math.min(contentOfPage.length(), startIndex + 200)) + "...";
+        String snippet = clearTextOfPage.substring(startIndex, Math.min(clearTextOfPage.length(), startIndex + 200)) + "...";
 
-        for (String queryWord : query.split("\\s+")) {
+        for (String queryWord : clearQuery.split("\\s+")) {
             index = snippet.indexOf(queryWord);
             while (index >= 0) {
                 snippet = snippet.substring(0, index) + "<b>" + snippet.substring(index, index + queryWord.length()) + "</b>" + snippet.substring(index + queryWord.length());
                 index = snippet.indexOf(queryWord, index + queryWord.length() + 7);
             }
         }
-        return snippet;
+        return snippet.equals("...") ? defaultTextOnPage : snippet;
+    }
+
+    private static String clearString(String contentOfPage) {
+        return contentOfPage
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("([^а-яa-z])", " ");
     }
 
     private String getTitle(PageModel page) {
