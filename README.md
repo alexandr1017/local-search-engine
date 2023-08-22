@@ -18,7 +18,7 @@
 - <img src="https://simpleicons.org/icons/springboot.svg" width="20" height="20"> В проекте использован Spring Boot.
 - <img src="https://simpleicons.org/icons/mysql.svg" width="20" height="20"> База данных: MySQL.
 - <img src="https://simpleicons.org/icons/hibernate.svg" width="20" height="20"> ORM: Hibernate.
-- <img src="src/main/resources/static/assets/img/icons/gears.svg" width="20" height="20"> Лемматизатор: Russian Morphology for Apache Lucene.
+- <img src="src/main/resources/static/assets/img/icons/gears.svg" width="20" height="20"> Лемматизатор: Russian & English Morphology for Apache Lucene.
 
 ## Использование визуального интерфейса
 
