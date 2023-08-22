@@ -78,7 +78,7 @@ public class LemmaFinder {
         }
     }
 
-    public String clearHtmlToText(String textHtml) {
+    private String clearHtmlToText(String textHtml) {
         return textHtml.toLowerCase(Locale.ROOT)
                 .replaceAll("<script.*?</script>", " ")
                 .replaceAll("<[^>]*>", " ")

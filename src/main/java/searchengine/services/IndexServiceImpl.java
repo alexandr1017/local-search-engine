@@ -64,7 +64,7 @@ public class IndexServiceImpl implements IndexingService {
     }
 
 
-    public void sitesParsing() {
+    private void sitesParsing() {
 
         List<Site> sites = sitesList.getSites();
 

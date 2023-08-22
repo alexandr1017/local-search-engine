@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public abstract class SearchResponse {
-        private boolean result;
-    }
+    private boolean result;
+}
 
 

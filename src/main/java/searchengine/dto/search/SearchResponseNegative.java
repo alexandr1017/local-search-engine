@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class SearchResponseNegative extends SearchResponse{
+public class SearchResponseNegative extends SearchResponse {
     String error;
 }
