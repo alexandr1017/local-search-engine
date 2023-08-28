@@ -7,10 +7,10 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import searchengine.model.IndexModel;
-import searchengine.model.LemmaModel;
-import searchengine.model.PageModel;
-import searchengine.model.SiteModel;
+import searchengine.model.Index;
+import searchengine.model.Lemma;
+import searchengine.model.Page;
+import searchengine.model.Site;
 import searchengine.repository.IndexRepository;
 import searchengine.repository.LemmaRepository;
 import searchengine.repository.PageRepository;
@@ -29,7 +29,7 @@ public class RecursiveSiteCrawler extends RecursiveAction {
     public static final String REFERRER = "http://www.google.com";
 
     private String url;
-    private SiteModel siteId;
+    private Site siteId;
     private Set<String> visitedLinks;
     private SiteRepository siteRepository;
     private PageRepository pageRepository;
@@ -37,7 +37,7 @@ public class RecursiveSiteCrawler extends RecursiveAction {
     private IndexRepository indexRepository;
 
 
-    public RecursiveSiteCrawler(String url, Set<String> visitedLinks, SiteModel siteId, SiteRepository siteRepository, PageRepository pageRepository, LemmaRepository lemmaRepository, IndexRepository indexRepository) {
+    public RecursiveSiteCrawler(String url, Set<String> visitedLinks, Site siteId, SiteRepository siteRepository, PageRepository pageRepository, LemmaRepository lemmaRepository, IndexRepository indexRepository) {
         this.url = url;
         this.siteId = siteId;
         this.siteRepository = siteRepository;
@@ -92,9 +92,9 @@ public class RecursiveSiteCrawler extends RecursiveAction {
 
                     Map<String, Integer> lemmasCountMap = LemmaFinder.getInstance().wordAndCountsCollector(html);
 
-                    PageModel pageModel = createPageModel(statusCode, path, html);
+                    Page page = createPageModel(statusCode, path, html);
 
-                    lemmaAndIndexBuilder(lemmasCountMap, siteId, pageModel);
+                    lemmaAndIndexBuilder(lemmasCountMap, siteId, page);
 
                     updateSiteModelDateTime(siteId);
 
@@ -120,66 +120,66 @@ public class RecursiveSiteCrawler extends RecursiveAction {
         }
     }
 
-    private PageModel createPageModel(int statusCode, String path, String html) {
-        PageModel pageModel = new PageModel();
-        pageModel.setPath(path);
-        pageModel.setContent(html);
-        pageModel.setCode(statusCode);
-        pageModel.setSiteId(siteId);
-        return pageRepository.save(pageModel);
+    private Page createPageModel(int statusCode, String path, String html) {
+        Page page = new Page();
+        page.setPath(path);
+        page.setContent(html);
+        page.setCode(statusCode);
+        page.setSiteId(siteId);
+        return pageRepository.save(page);
     }
 
-    private void updateSiteModelDateTime(SiteModel siteId) {
+    private void updateSiteModelDateTime(Site siteId) {
         siteId.setStatusTime(LocalDateTime.now());
         siteRepository.save(siteId);
     }
 
-    private void lemmaAndIndexBuilder(Map<String, Integer> lemmasCountMap, SiteModel siteModel, PageModel pageModel) {
+    private void lemmaAndIndexBuilder(Map<String, Integer> lemmasCountMap, Site site, Page page) {
         lemmasCountMap.forEach((lemma, rate) -> {
-            LemmaModel lemmaModel = new LemmaModel();
+            Lemma lemmaModel = new Lemma();
             lemmaModel.setLemma(lemma);
-            lemmaModel.setSiteId(siteModel);
+            lemmaModel.setSiteId(site);
             lemmaModel = addLemmaToDB(lemmaModel);
 
-            IndexModel indexModel = new IndexModel();
-            indexModel.setLemmaId(lemmaModel);
-            indexModel.setPageId(pageModel);
-            indexModel.setRank(rate);
+            Index index = new Index();
+            index.setLemmaId(lemmaModel);
+            index.setPageId(page);
+            index.setRank(rate);
             lemmaRepository.save(lemmaModel);
-            indexRepository.save(indexModel);
+            indexRepository.save(index);
         });
     }
 
-    private LemmaModel addLemmaToDB(LemmaModel lemmaModel) {
-        List<LemmaModel> lemmaList = lemmaRepository.findByLemma(lemmaModel.getLemma());
+    private Lemma addLemmaToDB(Lemma lemma) {
+        List<Lemma> lemmaList = lemmaRepository.findByLemma(lemma.getLemma());
 
         if (lemmaList.size() == 0) {
-            lemmaModel.setFrequency(1);
-            return lemmaRepository.save(lemmaModel);
+            lemma.setFrequency(1);
+            return lemmaRepository.save(lemma);
         } else {
-            LemmaModel lemmaFromDb = lemmaList.get(0);
+            Lemma lemmaFromDb = lemmaList.get(0);
             lemmaFromDb.setFrequency(lemmaFromDb.getFrequency() + 1);
             return lemmaRepository.save(lemmaFromDb);
         }
     }
 
     private void handleHttpStatusException(HttpStatusException ex) {
-        SiteModel siteModel = siteRepository.findByUrl(siteId.getUrl()).get();
+        Site site = siteRepository.findByUrl(siteId.getUrl()).get();
 
         String path = ex.getUrl().replaceAll("https?://[^/]+(/[^?#]*)", "$1");
 
-        PageModel pageModel = new PageModel();
-        pageModel.setCode(ex.getStatusCode());
-        pageModel.setPath(path);
-        pageModel.setContent("error");
-        pageModel.setSiteId(siteModel);
-        pageRepository.save(pageModel);
+        Page page = new Page();
+        page.setCode(ex.getStatusCode());
+        page.setPath(path);
+        page.setContent("error");
+        page.setSiteId(site);
+        pageRepository.save(page);
 
         if (path.startsWith("htt")) {
-            siteModel.setLastError("Ошибка");
+            site.setLastError("Ошибка");
         }
 
-        updateSiteModelDateTime(siteModel);
+        updateSiteModelDateTime(site);
     }
 }
 

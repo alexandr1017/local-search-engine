@@ -11,18 +11,18 @@ import javax.persistence.*;
 @NoArgsConstructor
 @Entity
 @Table(name = "`index`")
-public class IndexModel {
+public class Index {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "page_id", nullable = false)
-    private PageModel pageId;
+    private Page pageId;
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "lemma_id", nullable = false)
-    private LemmaModel lemmaId;
+    private Lemma lemmaId;
     @Column(name = "`rank`", columnDefinition = "FLOAT", nullable = false)
     private float rank;
 }

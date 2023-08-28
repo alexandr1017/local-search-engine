@@ -5,16 +5,14 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+
 import javax.persistence.*;
-import javax.persistence.Index;
 
 @Data
 @NoArgsConstructor
 @Entity
-@Table(name = "page", indexes = {@Index(name = "siteId_path_index", columnList = "site_id, `path`", unique = true)})
-
-public class PageModel {
-
+@Table(name = "lemma")
+public class Lemma {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -22,14 +20,10 @@ public class PageModel {
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "site_id", nullable = false)
-    private SiteModel siteId;
-
-    @Column(name = "path", columnDefinition = "VARCHAR(1000)", nullable = false)
-    private String path;
+    private Site siteId;
+    @Column(columnDefinition = "VARCHAR(255)", nullable = false)
+    private String lemma;
     @Column(nullable = false)
-    private Integer code;
-
-    @Column(columnDefinition = "MEDIUMTEXT CHARACTER SET utf8mb4", nullable = false)
-    private String content;
+    private Integer frequency;
 
 }

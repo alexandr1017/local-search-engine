@@ -2,15 +2,16 @@ package searchengine.services;
 
 import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import searchengine.dto.search.SearchItem;
 import searchengine.dto.search.SearchResponse;
 import searchengine.dto.search.SearchResponsePositive;
 import searchengine.exceptions.SearchException;
-import searchengine.model.IndexModel;
-import searchengine.model.LemmaModel;
-import searchengine.model.PageModel;
-import searchengine.model.SiteModel;
+import searchengine.model.Index;
+import searchengine.model.Lemma;
+import searchengine.model.Page;
+import searchengine.model.Site;
 import searchengine.repository.IndexRepository;
 import searchengine.repository.LemmaRepository;
 import searchengine.repository.PageRepository;
@@ -22,6 +23,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Component
 public class SearchServiceImpl implements SearchService {
 
     @Autowired
@@ -35,9 +37,9 @@ public class SearchServiceImpl implements SearchService {
 
 
     @Override
-    public SearchResponse search(String query, String site, int offset, int limit) throws IOException {
+    public SearchResponse search(String query, int offset, int limit, String site) throws IOException {
 
-        Optional<SiteModel> siteModelOptional = siteRepository.findByUrl(site);
+        Optional<Site> siteModelOptional = siteRepository.findByUrl(site);
 
         if (siteModelOptional.isEmpty() && !site.isEmpty()) {
             throw new SearchException("Данный сайт не проиндексирован");
@@ -47,27 +49,27 @@ public class SearchServiceImpl implements SearchService {
                 .wordAndCountsCollector(query)
                 .keySet();
 
-        List<LemmaModel> lemmaModelsListOfDB = searchLemmasFromDB(site, siteModelOptional, lemmasQuerySet);
+        List<Lemma> lemmaModelsListOfDB = searchLemmasFromDB(site, siteModelOptional, lemmasQuerySet);
 
         if (lemmaModelsListOfDB.isEmpty()) {
             throw new SearchException("Поиск не дал результатов");
         }
 
-        List<LemmaModel> sortedLemmasListToFreq = lemmaModelsListOfDB.stream()
-                .sorted(Comparator.comparing(LemmaModel::getFrequency))
+        List<Lemma> sortedLemmasListToFreq = lemmaModelsListOfDB.stream()
+                .sorted(Comparator.comparing(Lemma::getFrequency))
                 .toList();
 
-        List<PageModel> pages = findPages(sortedLemmasListToFreq);
+        List<Page> pages = findPages(sortedLemmasListToFreq);
 
         if (pages.isEmpty()) {
             throw new SearchException("Ничего не найдено по данному запросу");
         }
 
-        Map<PageModel, Double> relevanceMap = buildRelevanceMap(sortedLemmasListToFreq, pages);
+        Map<Page, Double> relevanceMap = buildRelevanceMap(sortedLemmasListToFreq, pages);
 
-        Map<PageModel, Double> sortedRelevanceMap = relevanceMap.entrySet()
+        Map<Page, Double> sortedRelevanceMap = relevanceMap.entrySet()
                 .stream()
-                .sorted(Map.Entry.<PageModel, Double>comparingByValue().reversed()).limit(500)
+                .sorted(Map.Entry.<Page, Double>comparingByValue().reversed()).limit(500)
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         Map.Entry::getValue,
@@ -76,15 +78,15 @@ public class SearchServiceImpl implements SearchService {
                 ));
 
 
-        List<SearchItem> data = buildDataResult(query, sortedRelevanceMap);
+        List<SearchItem> data = buildDataResult(query, sortedRelevanceMap, offset, limit);
 
-        return new SearchResponsePositive(data.size(), data);
+        return new SearchResponsePositive(sortedRelevanceMap.keySet().size(), data);
     }
 
-    private List<LemmaModel> searchLemmasFromDB(String site, Optional<SiteModel> siteModelOptional, Set<String> lemmasQuerySet) {
-        List<LemmaModel> lemmaModelsListOfDB = new ArrayList<>();
+    private List<Lemma> searchLemmasFromDB(String site, Optional<Site> siteModelOptional, Set<String> lemmasQuerySet) {
+        List<Lemma> lemmaModelsListOfDB = new ArrayList<>();
         for (String lemma : lemmasQuerySet) {
-            LemmaModel lemmaModel;
+            Lemma lemmaModel;
 
             if (site == null || site.isEmpty()) {
                 lemmaModel = lemmaRepository.customSelectAllSitesFromLemmaDB(lemma);
@@ -99,31 +101,38 @@ public class SearchServiceImpl implements SearchService {
         return lemmaModelsListOfDB;
     }
 
-    private List<SearchItem> buildDataResult(String query, Map<PageModel, Double> sortedRelevanceMap) {
+    private List<SearchItem> buildDataResult(String query, Map<Page, Double> sortedRelevanceMap, int offset, int limit) {
         List<SearchItem> data = new ArrayList<>();
+        final int fLimit = Math.min(limit, sortedRelevanceMap.keySet().size());
+        int[] acc = {offset};
 
         sortedRelevanceMap.forEach((page, relevance) -> {
 
-            SearchItem searchItem = new SearchItem();
-            searchItem.setRelevance(relevance);
-            searchItem.setSite(page.getSiteId().getUrl());
-            searchItem.setSiteName(page.getSiteId().getName());
-            searchItem.setUri(page.getPath());
-            searchItem.setTitle(getTitle(page));
-            searchItem.setSnippet(getSnippet(page.getContent(), query));
-            data.add(searchItem);
+            if (acc[0] < fLimit) {
+                SearchItem searchItem = new SearchItem();
+                searchItem.setRelevance(relevance);
+                searchItem.setSite(page.getSiteId().getUrl());
+                searchItem.setSiteName(page.getSiteId().getName());
+                searchItem.setUri(page.getPath());
+                searchItem.setTitle(getTitle(page));
+                searchItem.setSnippet(getSnippet(page.getContent(), query));
+                data.add(searchItem);
+                acc[0]++;
+            }
+
         });
         return data;
     }
 
-    private Map<PageModel, Double> buildRelevanceMap(List<LemmaModel> sortedLemmasListToFreq, List<PageModel> pages) {
-        HashMap<PageModel, Double> relevanceMap = new HashMap<>();
+
+    private Map<Page, Double> buildRelevanceMap(List<Lemma> sortedLemmasListToFreq, List<Page> pages) {
+        HashMap<Page, Double> relevanceMap = new HashMap<>();
         double maxAbsRelevance = 0.0;
-        for (PageModel page : pages) {
+        for (Page page : pages) {
             double sumRank = 0.0;
-            for (LemmaModel lemmaModel : sortedLemmasListToFreq) {
-                List<IndexModel> indexModels = indexRepository.findByPageIdAndLemmaId(page.getId(), lemmaModel.getId());
-                for (IndexModel index : indexModels) {
+            for (Lemma lemma : sortedLemmasListToFreq) {
+                List<Index> indices = indexRepository.findByPageIdAndLemmaId(page.getId(), lemma.getId());
+                for (Index index : indices) {
                     sumRank += index.getRank();
                 }
             }
@@ -138,10 +147,10 @@ public class SearchServiceImpl implements SearchService {
         return relevanceMap;
     }
 
-    private List<PageModel> findPages(List<LemmaModel> sortedLemmasListToFreq) {
-        List<PageModel> pages = new ArrayList<>();
-        for (LemmaModel lemmaModel : sortedLemmasListToFreq) {
-            List<Integer> pageIds = indexRepository.findPageIdLemmaId(lemmaModel.getId());
+    private List<Page> findPages(List<Lemma> sortedLemmasListToFreq) {
+        List<Page> pages = new ArrayList<>();
+        for (Lemma lemma : sortedLemmasListToFreq) {
+            List<Integer> pageIds = indexRepository.findPageIdLemmaId(lemma.getId());
             if (pages.isEmpty()) {
                 pages = pageRepository.findPagesByIds(pageIds);
             } else {
@@ -196,7 +205,7 @@ public class SearchServiceImpl implements SearchService {
                 .replaceAll("([^а-яa-z])", " ");
     }
 
-    private String getTitle(PageModel page) {
+    private String getTitle(Page page) {
         String pageContent = page.getContent();
         int titleTextStartIndex = pageContent.indexOf("<title>");
         int titleTextEndIndex = pageContent.indexOf("</title>");

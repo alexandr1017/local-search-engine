@@ -23,7 +23,8 @@ indexing-settings:
 #    - url: https://www.svetlovka.ru
 #      name: Центральная городская молодежная библиотека им. М. А. Светлова
 
-
+search-settings:
+  offset: 0
 
 server:
   port: 8080

@@ -7,7 +7,7 @@ import searchengine.dto.statistics.DetailedStatisticsItem;
 import searchengine.dto.statistics.StatisticsData;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.dto.statistics.TotalStatistics;
-import searchengine.model.SiteModel;
+import searchengine.model.Site;
 import searchengine.repository.LemmaRepository;
 import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
@@ -32,16 +32,16 @@ public class StatisticsServiceImpl implements StatisticsService {
     @Override
     public StatisticsResponse getStatistics() {
 
-        List<SiteModel> siteModels = siteRepository.findAll();
+        List<Site> sites = siteRepository.findAll();
 
         TotalStatistics total = new TotalStatistics();
-        total.setSites(siteModels.size());
+        total.setSites(sites.size());
         total.setIndexing(IndexServiceImpl.isRunning);
 
 
         List<DetailedStatisticsItem> detailed = new ArrayList<>();
 
-        for (SiteModel site : siteModels) {
+        for (Site site : sites) {
 
             DetailedStatisticsItem item = new DetailedStatisticsItem();
             item.setName(site.getName());

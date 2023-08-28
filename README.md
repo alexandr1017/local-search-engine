@@ -46,7 +46,7 @@ POST /api/indexPage?url=URL страницы для добавления в ин
 ### Поиск
 
 ```html
-GET /api/search?query=тело запроса&site=ограничение на поиск внутри определенного сайта&offset=0&limit=10
+GET /api/search?query=тело запроса&siteConfig=ограничение на поиск внутри определенного сайта&offset=0&limit=10
 ```
 
 
@@ -61,7 +61,7 @@ GET /api/statistics
   "result": true,
   "statistics": {
     "total": {
-      "sites": 2,
+      "siteConfigs": 2,
       "pages": 230,
       "lemmas": 7759,
       "indexing": false

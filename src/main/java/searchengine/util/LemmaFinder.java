@@ -2,6 +2,7 @@ package searchengine.util;
 
 import org.apache.lucene.morphology.english.EnglishLuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
+import org.jsoup.Jsoup;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -32,11 +33,13 @@ public class LemmaFinder {
 
     public Map<String, Integer> wordAndCountsCollector(String text) {
         Map<String, Integer> wordCounts = new HashMap<>();
-        String pureText = clearHtmlToText(text);
+
+        String pureText = clearHtmlToText(Jsoup.parse(text).body().text());
+
         String[] words = pureText.split(" ");
 
         for (String word : words) {
-            if (word.length() < 2) {
+            if (word.length() < 3) {
                 continue;
             }
 

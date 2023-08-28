@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Data
 @Entity
 @Table(name = "site")
-public class SiteModel {
+public class Site {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -25,7 +25,7 @@ public class SiteModel {
     @Column(columnDefinition = "VARCHAR(255)", nullable = false, unique = true)
     private String name;
 
-    public SiteModel() {
+    public Site() {
         setStatus("INDEXING");
         setStatusTime(LocalDateTime.now());
     }
