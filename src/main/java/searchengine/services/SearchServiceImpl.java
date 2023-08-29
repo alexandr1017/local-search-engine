@@ -38,7 +38,7 @@ public class SearchServiceImpl implements SearchService {
 
     @Override
     public SearchResponse search(String query, int offset, int limit, String site) throws IOException {
-
+        String queryTrim = query.trim();
         Optional<Site> siteModelOptional = siteRepository.findByUrl(site);
 
         if (siteModelOptional.isEmpty() && !site.isEmpty()) {
@@ -46,7 +46,7 @@ public class SearchServiceImpl implements SearchService {
         }
 
         Set<String> lemmasQuerySet = LemmaFinder.getInstance()
-                .wordAndCountsCollector(query)
+                .wordAndCountsCollector(queryTrim)
                 .keySet();
 
         List<Lemma> lemmaModelsListOfDB = searchLemmasFromDB(site, siteModelOptional, lemmasQuerySet);
@@ -78,7 +78,7 @@ public class SearchServiceImpl implements SearchService {
                 ));
 
 
-        List<SearchItem> data = buildDataResult(query, sortedRelevanceMap, offset, limit);
+        List<SearchItem> data = buildDataResult(queryTrim, sortedRelevanceMap, offset, limit);
 
         return new SearchResponsePositive(sortedRelevanceMap.keySet().size(), data);
     }
