@@ -1,6 +1,7 @@
 # localSearchEngine
 <img src="src/main/resources/static/assets/img/icons/house-svgrepo-com.svg" width="200" height="200">
 <img src="src/main/resources/static/assets/img/icons/research-svgrepo-com.svg"width="200" height="150">
+<img src="src/main/resources/static/assets/img/icons/searchEngine.png"width="400">
 
 Это учебный проект локального поискового движка по заданным сайтам. Движок предназначен для поиска страниц с информацией по ключевым словам и анализа сайтов.
 
@@ -27,6 +28,8 @@
 3. Перейдите во вкладку "**Managment**" и нажмите на кнопку "**Start indexing**".
 4. После окончания процесса индексации статистическая информация станет доступна во вкладке "**Statistics**".
 5. Для поиска используйте вкладку "**Search**", при использовании поиска есть возможность использовать ограничение на поиск по одному сайту.
+
+[![Показать демонстрацию](https://img.shields.io/badge/%D0%9F%D0%BE%D0%BA%D0%B0%D0%B7%D0%B0%D1%82%D1%8C-%D0%B4%D0%B5%D0%BC%D0%BE%D0%BD%D1%81%D1%82%D1%80%D0%B0%D1%86%D0%B8%D1%8E-green)](src/main/resources/static/assets/img/icons/clip.gif)
 
 ## API
 
